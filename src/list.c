@@ -19,7 +19,7 @@
 
 #include "list.h"
 
-void alonexec_specFree(alonexec_spec *spec)
+static void alonexec_specFree(alonexec_spec *spec)
 {
     free(spec->src);
     free(spec->dst);

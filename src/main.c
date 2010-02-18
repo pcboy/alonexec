@@ -19,7 +19,7 @@
 
 #include "alonexec.h"
 
-void usage(char *argv[])
+static void usage(char *argv[])
 {
     fprintf(stderr, "usage: %s <file.alonexec>\n"
             "An alonexe file is of the type:\n"

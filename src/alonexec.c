@@ -26,7 +26,7 @@
 #include "list.h"
 #include "../rsrc/spec.h"
 
-void alonexec_writeMain(alonexec_t *slf)
+static void alonexec_writeMain(alonexec_t *slf)
 {
     /* FIXME: For now we are chdiring() for facilities. */
     fprintf(slf->fgenfile, "int main(void) {\n\
@@ -47,7 +47,7 @@ void alonexec_writeMain(alonexec_t *slf)
             }");
 }
 
-void alonexec_writeFunctions(alonexec_t *slf)
+static void alonexec_writeFunctions(alonexec_t *slf)
 {
     char *fcts = getFileContents(ALONEXEC_FCTFILE);
     
@@ -56,7 +56,7 @@ void alonexec_writeFunctions(alonexec_t *slf)
     alonexec_writeMain(slf);
 }
 
-void alonexec_writeSpecTable(alonexec_t *slf)
+static void alonexec_writeSpecTable(alonexec_t *slf)
 {
     char *speccontent = getFileContents(ALONEXEC_SPECFILE);
     alonexec_list_t *it;
@@ -73,7 +73,7 @@ void alonexec_writeSpecTable(alonexec_t *slf)
     free(speccontent);
 }
 
-void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
+static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
 {
     char *stripname, *filename;
     char *content;
@@ -84,7 +84,7 @@ void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
     filename = removeQuotes(spec->src);
     content = getFileContents(filename);
     fprintf(slf->fgenfile, "char %s[] = {", stripname);
-    if ((siz = getFileSize(filename) < 0)) {
+    if ((siz = getFileSize(filename)) < 0) {
         fprintf(stderr, "%s:%i Can't get %s file size.\n",
                 __FILE__, __LINE__, filename);
         free(stripname);
@@ -104,7 +104,7 @@ void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
     free(content);
 }
 
-void alonexec_writeAllRsrc(alonexec_t *slf)
+static void alonexec_writeAllRsrc(alonexec_t *slf)
 {
     alonexec_list_t *it;
 
@@ -113,7 +113,7 @@ void alonexec_writeAllRsrc(alonexec_t *slf)
     }
 }
 
-void alonexec_parseTpl(alonexec_t* slf, char *tpl)
+static void alonexec_parseTpl(alonexec_t* slf, char *tpl)
 {
     char *tplcontent = getFileContents(tpl);
     size_t len = 0;
@@ -159,7 +159,7 @@ void alonexec_parseTpl(alonexec_t* slf, char *tpl)
     free(tplcontent);
 }
 
-int alonexec_compile(alonexec_t *slf)
+static int alonexec_compile(alonexec_t *slf)
 {
     pid_t pid = fork();
 
