@@ -77,14 +77,21 @@ void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
 {
     char *stripname, *filename;
     char *content;
-    unsigned int i;
-    size_t siz;
+    int i;
+    ssize_t siz;
 
     stripname = removeBadChars(spec->src);
     filename = removeQuotes(spec->src);
     content = getFileContents(filename);
     fprintf(slf->fgenfile, "char %s[] = {", stripname);
-    siz = getFileSize(filename);
+    if ((siz = getFileSize(filename) < 0)) {
+        fprintf(stderr, "%s:%i Can't get %s file size.\n",
+                __FILE__, __LINE__, filename);
+        free(stripname);
+        free(filename);
+        free(content);
+        return;
+    }
     spec->content = stripname ? strdup(stripname) : NULL;
     spec->contentlen = siz;
     for (i = 0; i < siz; ++i) {

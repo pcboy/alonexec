@@ -5,7 +5,7 @@
 char *removeQuotes(char *line);
 char *removeBadChars(char *line);
 char *getNextToken(char *line);
-size_t getFileSize(char *file);
+ssize_t getFileSize(char *file);
 char *getFileContents(char *file);
 char *my_getLine(char *content, size_t *len);
 

@@ -80,7 +80,7 @@ char *getNextToken(char *line)
     return h ? strdup(res) : NULL;
 }
 
-size_t getFileSize(char *file)
+ssize_t getFileSize(char *file)
 {
     struct stat s;
 
@@ -94,10 +94,14 @@ size_t getFileSize(char *file)
 
 char *getFileContents(char *file)
 {
-    size_t siz = getFileSize(file);
-    char *res = malloc(sizeof(char) * siz+1);
+    ssize_t siz;
+    char *res;
     int fd;
 
+    if ((siz = getFileSize(file)) < 0) {
+        return NULL;
+    }
+    res = malloc(sizeof(char) * siz+1);
     if ((fd = open(file, O_RDONLY, 0)) < 0) {
         perror("open");
         fprintf(stderr, "Can't open %s\n", file);
