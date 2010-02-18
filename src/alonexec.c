@@ -209,6 +209,10 @@ alonexec_t *alonexec_init(char *tpl, char **opts)
 
 void alonexec_destroy(alonexec_t *del)
 {
+    if (unlink(del->genfile) < 0) {
+        fprintf(stderr, "%s:%i Can't unlink %s\n", __FUNCTION__,
+                __LINE__, del->genfile);
+    }
     alonexec_listFree(del->listfiles);
     free(del), del = NULL;
 }
