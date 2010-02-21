@@ -77,13 +77,16 @@ static void alonexec_writeSpecTable(alonexec_t *slf)
 static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
 {
     char *stripname, *filename;
+    char *rsrc;
     char *content;
     int i;
     ssize_t siz;
+    ssize_t wrotelen = 0;
 
     stripname = removeChars(spec->src, isalpha);
     filename = removeChars(spec->src, notQuote);
     content = getFileContents(filename);
+    printf("Packing %s\n", stripname);
     fprintf(slf->fgenfile, "char %s[] = {", stripname);
     if ((siz = getFileSize(filename)) < 0) {
         fprintf(stderr, "%s:%i Can't get %s file size.\n",
@@ -95,14 +98,21 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
     }
     spec->content = stripname ? strdup(stripname) : NULL;
     spec->contentlen = siz;
+    rsrc = malloc(sizeof(char) * spec->contentlen*6);
     for (i = 0; i < siz; ++i) {
-        fprintf(slf->fgenfile, "0x%x%c",
+        char oct[8] = {0};
+        ssize_t wrote;
+        wrote = snprintf(oct, sizeof(oct), "0x%x%c",
                 content[i] & 0xff, (i+1 != siz ? ',' : ' '));
+        memcpy(rsrc + wrotelen, oct, wrote);
+        wrotelen += wrote;
     }
+    fwrite(rsrc, sizeof(char), wrotelen, slf->fgenfile);
     fprintf(slf->fgenfile, "};\n");
     free(stripname);
     free(filename);
     free(content);
+    free(rsrc);
 }
 
 static void alonexec_writeAllRsrc(alonexec_t *slf)
@@ -166,10 +176,11 @@ static int alonexec_compile(alonexec_t *slf)
 {
     int status = 0;
     pid_t pid = fork();
-
+    
     switch (pid) {
         case 0:
-            execlp("gcc", "gcc", "-x", "c", slf->genfile,
+            printf("Compiling final executable...\n");
+            execlp("gcc", "gcc", "-O2", "-x", "c", slf->genfile,
                     "-o", "finalexe", NULL);
             return -1;
         case -1:
