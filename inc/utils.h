@@ -1,9 +1,8 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
- 
 
-char *removeQuotes(char *line);
-char *removeBadChars(char *line);
+int notQuote(int c);
+char *removeChars(char *line, int (*keepEq)(int));
 char *getNextToken(char *line);
 ssize_t getFileSize(char *file);
 char *getFileContents(char *file);

@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <sys/wait.h>
 
 #include "alonexec.h"
@@ -80,8 +81,8 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
     int i;
     ssize_t siz;
 
-    stripname = removeBadChars(spec->src);
-    filename = removeQuotes(spec->src);
+    stripname = removeChars(spec->src, isalpha);
+    filename = removeChars(spec->src, notQuote);
     content = getFileContents(filename);
     fprintf(slf->fgenfile, "char %s[] = {", stripname);
     if ((siz = getFileSize(filename)) < 0) {
@@ -124,6 +125,8 @@ static void alonexec_parseTpl(alonexec_t* slf, char *tpl)
     my_getLine(NULL, &len);
 
     while ((line = my_getLine(tplcontent, &len))) {
+        if (line[0] == '#') /* It's a comment. */
+            continue;
         char *token;
         char *p = line;
         alonexec_spec *spec = malloc(sizeof(alonexec_spec));
@@ -161,6 +164,7 @@ static void alonexec_parseTpl(alonexec_t* slf, char *tpl)
 
 static int alonexec_compile(alonexec_t *slf)
 {
+    int status = 0;
     pid_t pid = fork();
 
     switch (pid) {
@@ -172,7 +176,7 @@ static int alonexec_compile(alonexec_t *slf)
             perror("fork");
             return -1;
         default:
-            wait(0);
+            wait(&status);
             return 0;
     }
 }

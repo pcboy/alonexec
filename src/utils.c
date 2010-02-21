@@ -26,24 +26,12 @@
 #include <string.h>
 #include <ctype.h>
 
-char *removeQuotes(char *line)
+int notQuote(int c)
 {
-    char *res;
-    int i, h = 0;
-
-    if (!line)
-        return NULL;
-    res = alloca(strlen(line)+1);
-    for (i = 0; line[i]; ++i) {
-        if (line[i] != '"') {
-            res[h++] = line[i];
-        }
-    }
-    res[h] = '\0';
-    return h ? strdup(res) : NULL;
+    return c != '"';
 }
 
-char *removeBadChars(char *line)
+char *removeChars(char *line, int (*keepEq)(int))
 {
     char *res; 
     int i, h = 0;
@@ -52,7 +40,7 @@ char *removeBadChars(char *line)
         return NULL;
     res = alloca(strlen(line)+1);
     for (i = 0; line[i]; ++i) {
-        if (isalpha(line[i])) { /* FIXME: Will causes problem in the future.
+        if (keepEq(line[i])) { /* FIXME: Will causes problem in the future.
                                   What to do for 8c,9c binary names for instance ?*/
             res[h++] = line[i];
         }
@@ -87,7 +75,7 @@ ssize_t getFileSize(char *file)
     if (lstat(file, &s) < 0) {
         perror("lstat");
         fprintf(stderr, "Can't lstat %s\n", file);
-        return 0;
+        return -1;
     }
     return s.st_size;
 }
@@ -105,9 +93,14 @@ char *getFileContents(char *file)
     if ((fd = open(file, O_RDONLY, 0)) < 0) {
         perror("open");
         fprintf(stderr, "Can't open %s\n", file);
+        free(res);
         return NULL;
     }
-    read(fd, res, sizeof(char) * siz);
+    if (read(fd, res, sizeof(char) * siz) < 0) {
+        perror("read");
+        free(res);
+        return NULL;
+    }
     res[siz] = '\0';
     close(fd);
     return res;
