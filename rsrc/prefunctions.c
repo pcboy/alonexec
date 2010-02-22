@@ -19,15 +19,49 @@
  */
 
 #include <unistd.h>
+#include <sys/stat.h>
 #include <stdio.h>
+
+mode_t str2mode(char *rights)
+{
+    static mode_t res = 0;
+    mode_t tmp = 0;
+    static int pos = 6;
+    int i = 0;
+
+    while (rights[i]) {
+        if (i && !(i%3)) {
+            break;
+        }
+        switch(rights[i]) {
+            case 'r':
+                tmp |= 4;
+                break;
+            case 'w':
+                tmp |= 2;
+                break;
+            case 'x':
+                tmp |= 1;
+                break;
+            default:
+                break;
+        }
+        ++i;
+    }
+    res |= ((tmp << pos));
+    pos -= 3;
+    if (i)
+        str2mode(rights + i);
+    return res;
+}
 
 int executeRsrc(const char *file)
 {
     pid_t pid = fork();
 
-    printf("executing %s\n", file);
     switch (pid) {
         case 0:
+            printf("executing %s\n", file);
             execl(file, file, NULL);
             return -1;
         case -1:
@@ -42,7 +76,16 @@ void copyRsrc(const char *src, const char *dst, char *perms,
         char *content, size_t len)
 {
     FILE *fp = fopen(dst, "w");
+    if (!fp) {
+        perror("fopen");
+        fprintf(stderr, "Can't fopen %s\n", dst);
+        return;
+    }
     printf("Copying %s to %s with %s\n", src, dst, perms);
     fwrite(content, sizeof(char), len, fp);
     fclose(fp);
+    if (chmod(dst, str2mode(perms)) < 0) {
+        perror("chmod");
+        fprintf(stderr, "Can't chmod %s to %s\n", dst, perms);
+    }
 }
