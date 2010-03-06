@@ -20,7 +20,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+
+#ifndef _WIN32
 #include <sys/wait.h>
+#endif
+#ifdef _WIN32
+#define mkstemp(x) _mktemp(x)
+#endif
 
 #include "alonexec.h"
 #include "utils.h"
@@ -32,7 +38,8 @@ static void alonexec_writeMain(alonexec_t *slf)
     /* FIXME: For now we are chdiring() for facilities. */
     fprintf(slf->fgenfile, "int main(void) {\n\
             int i;\n\
-            if (chdir(\""ALONEXEC_WORKDIR"\") < 0){\n\
+            const char *tmp = getTempDirectory();\n\
+            if (chdir(tmp) < 0){\n\
                 perror(\"chdir\");\n\
             }\n\
             for (i = 0; alonefiles[i].src;++i) {\n\
@@ -172,6 +179,31 @@ static void alonexec_parseTpl(alonexec_t* slf, char *tpl)
     free(tplcontent);
 }
 
+#if defined(_WIN32)
+static int alonexec_compile(alonexec_t *slf)
+{
+    printf("%s\n", slf->genfile);
+    exit(1);
+#if 0
+    int status = 0;
+    pid_t pid = fork();
+    
+    switch (pid) {
+        case 0:
+            printf("Compiling final executable...\n");
+            execlp("gcc", "gcc", "-O2", "-x", "c", slf->genfile,
+                    "-o", "finalexe", NULL);
+            return -1;
+        case -1:
+            perror("fork");
+            return -1;
+        default:
+            wait(&status);
+            return 0;
+    }
+#endif
+}
+#else
 static int alonexec_compile(alonexec_t *slf)
 {
     int status = 0;
@@ -191,6 +223,7 @@ static int alonexec_compile(alonexec_t *slf)
             return 0;
     }
 }
+#endif
 
 alonexec_t *alonexec_init(char *tpl, char **opts)
 {
@@ -199,6 +232,7 @@ alonexec_t *alonexec_init(char *tpl, char **opts)
     (void)opts;
     res = malloc(sizeof(alonexec_t));
     res->tpl = tpl;
+    res->listfiles = NULL;
     snprintf(res->genfile, sizeof(res->genfile),
             "%s/%s", ALONEXEC_WORKDIR, "alonexecgen.c.XXXXXX");
     if (mkstemp(res->genfile) < 0) {
@@ -207,7 +241,7 @@ alonexec_t *alonexec_init(char *tpl, char **opts)
                 __FUNCTION__, res->genfile);
         exit(EXIT_FAILURE);
     }
-    if (!(res->fgenfile = fopen(res->genfile, "r+"))) {
+    if (!(res->fgenfile = fopen(res->genfile, "w+"))) {
         perror("fopen");
         fprintf(stderr, "%i:%s Can't open %s\n", __LINE__,
                 __FUNCTION__, res->genfile);

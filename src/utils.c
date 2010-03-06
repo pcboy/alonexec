@@ -26,6 +26,12 @@
 #include <string.h>
 #include <ctype.h>
 
+#ifdef _WIN32
+#include <sys/types.h>
+#include <malloc.h>
+#define lstat(x,y) _stat(x,y)
+#endif
+
 int notQuote(int c)
 {
     return c != '"';
