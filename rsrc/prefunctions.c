@@ -28,6 +28,8 @@ const char *getTempDirectory(void)
     static char *tmp = NULL;
     static char tmpfold[2048] = {0};
 
+    if (tmp)
+        return tmp;
     if (!(tmp = getenv("TMPDIR"))) {
         tmp = P_tmpdir;
     }
@@ -69,9 +71,12 @@ mode_t str2mode(char *rights)
     }
     res |= ((tmp << pos));
     pos -= 3;
-    if (i)
-        str2mode(rights + i);
-    return res;
+    if (i && pos >= 0)
+        return str2mode(rights + i);
+    pos = 6;
+    tmp = res;
+    res = 0;
+    return tmp;
 }
 
 int executeRsrc(const char *file)
