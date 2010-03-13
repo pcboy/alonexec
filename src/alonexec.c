@@ -208,7 +208,7 @@ static int alonexec_compile(alonexec_t *slf)
     switch (pid) {
         case 0:
             printf("Compiling final executable...\n");
-            execlp("tcc", "tcc", "-W", "-Wall", slf->genfile,
+            execl("tcc", "tcc", "-W", "-Wall", slf->genfile,
                     "-o", "finalexe", NULL);
             return -1;
         case -1:
