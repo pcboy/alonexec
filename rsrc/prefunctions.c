@@ -21,9 +21,25 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <stdio.h>
+#include <alloca.h>
+#include <string.h>
+
+#if defined(_WIN32)
+#define PATH_SEPARATOR '\\'
+#else
+#define PATH_SEPARATOR '/'
+#endif
+
+#ifdef __linux__
+#include <linux/limits.h>
+#endif
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
 #if !defined(_WIN32)
-const char *getTempDirectory(void)
+static const char *getTempDirectory(void)
 {
     static char *tmp = NULL;
     static char tmpfold[2048] = {0};
@@ -43,7 +59,7 @@ const char *getTempDirectory(void)
 }
 #endif
 
-mode_t str2mode(char *rights)
+static mode_t str2mode(char *rights)
 {
     static mode_t res = 0;
     mode_t tmp = 0;
@@ -79,7 +95,7 @@ mode_t str2mode(char *rights)
     return tmp;
 }
 
-int executeRsrc(const char *file, char * argv[])
+static int executeRsrc(const char *file, char * argv[])
 {
     pid_t pid = fork();
 
@@ -97,10 +113,40 @@ int executeRsrc(const char *file, char * argv[])
     }
 }
 
-void copyRsrc(const char *src, const char *dst, char *perms,
+static void recurseMkdir(const char *dir)
+{
+    char tmp[PATH_MAX];
+    char *p = NULL;
+    size_t len;
+
+    strncpy(tmp, dir, sizeof(tmp));
+    len = strlen(tmp);
+    if (tmp[len - 1] == '/')
+        tmp[len - 1] = 0;
+    for (p = tmp + 1; *p; p++)
+        if (*p == '/') {
+            *p = 0;
+            mkdir(tmp, S_IRWXU);
+            *p = '/';
+        }
+    mkdir(tmp, S_IRWXU);
+}
+
+static void copyRsrc(const char *src, const char *dst, char *perms,
         char *content, size_t len)
 {
-    FILE *fp = fopen(dst, "w");
+    FILE *fp;
+    int i;
+    char folder[PATH_MAX];
+   
+    strncpy(folder, dst, sizeof(folder));
+    for (i = 0; folder[i]; ++i);
+    for (--i; i && folder[i] != PATH_SEPARATOR; --i);
+    folder[i] = '\0';
+    if (i) {
+        recurseMkdir(folder);
+    }
+    fp = fopen(dst, "w");
     if (!fp) {
         perror("fopen");
         fprintf(stderr, "Can't fopen %s\n", dst);
@@ -114,3 +160,15 @@ void copyRsrc(const char *src, const char *dst, char *perms,
         fprintf(stderr, "Can't chmod %s to %s\n", dst, perms);
     }
 }
+
+static const char *lastCurrentDir(bool reset)
+{
+    static const char dir[PATH_MAX] = {0};
+    static char *res = NULL;
+
+    if (res && !reset)
+        return res;
+    res = getcwd(res, sizeof(res));
+    return res;
+}
+

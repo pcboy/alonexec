@@ -43,12 +43,12 @@ static void alonexec_writeMain(alonexec_t *slf)
             if (chdir(tmp) < 0){\n\
                 perror(\"chdir\");\n\
             }\n\
-            for (i = 0; alonefiles[i].src;++i) {\n\
+            for (i = 0; alonefiles[i].src; ++i) {\n\
                 copyRsrc(alonefiles[i].src, alonefiles[i].dst,\n\
                     alonefiles[i].perms, alonefiles[i].content,\n\
                     alonefiles[i].contentlen);\n\
             }\n\
-            for (i = 0; alonefiles[i].src;++i) {\n\
+            for (i = 0; alonefiles[i].src; ++i) {\n\
                 if (alonefiles[i].exec)\n\
                     executeRsrc(alonefiles[i].dst, argv);\n\
             }\
@@ -208,12 +208,8 @@ static int alonexec_compile(alonexec_t *slf)
     switch (pid) {
         case 0:
             printf("Compiling final executable...\n");
-            execlp("gcc", "gcc", "-O2", slf->genfile,
+            execlp("tcc", "tcc", "-W", "-Wall", slf->genfile,
                     "-o", "finalexe", NULL);
-#if 0
-            execlp("tcc", "tcc", slf->genfile,
-                    "-o", "finalexe", NULL);
-#endif
             return -1;
         case -1:
             perror("fork");

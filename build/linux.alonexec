@@ -1,0 +1,5 @@
+{"alonexec", "alonexec", "rwxr-xr-x", true},
+{"linux.alonexec", "linux.alonexec", "rwxr-xr-x", false},
+{"../rsrc/spec.h", "../rsrc/spec.h", "rwxr-xr-x", false},
+{"../rsrc/prefunctions.c", "../rsrc/prefunctions.c", "rwxr-xr-x", false},
+{"tcc", "tcc", "rwxr-xr-x", false}
