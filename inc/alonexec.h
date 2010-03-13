@@ -6,7 +6,6 @@
 
 #include "list.h"
 
-#define ALONEXEC_WORKDIR "/tmp/"
 #define ALONEXEC_SPECFILE "../rsrc/spec.h"
 #define ALONEXEC_FCTFILE "../rsrc/prefunctions.c"
 

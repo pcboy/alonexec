@@ -25,6 +25,7 @@
 #include <sys/wait.h>
 #endif
 #ifdef _WIN32
+#include <windows.h>
 #define mkstemp(x) _mktemp(x)
 #endif
 
@@ -94,7 +95,7 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
     filename = removeChars(spec->src, notQuote);
     content = getFileContents(filename);
     printf("Packing %s\n", stripname);
-    fprintf(slf->fgenfile, "char %s[] = {", stripname);
+    fprintf(slf->fgenfile, "static char %s[] = {", stripname);
     if ((siz = getFileSize(filename)) < 0) {
         fprintf(stderr, "%s:%i Can't get %s file size.\n",
                 __FILE__, __LINE__, filename);
@@ -182,38 +183,37 @@ static void alonexec_parseTpl(alonexec_t* slf, char *tpl)
 #if defined(_WIN32)
 static int alonexec_compile(alonexec_t *slf)
 {
-    printf("%s\n", slf->genfile);
-    exit(1);
-#if 0
-    int status = 0;
-    pid_t pid = fork();
-    
-    switch (pid) {
-        case 0:
-            printf("Compiling final executable...\n");
-            execlp("gcc", "gcc", "-O2", "-x", "c", slf->genfile,
-                    "-o", "finalexe", NULL);
-            return -1;
-        case -1:
-            perror("fork");
-            return -1;
-        default:
-            wait(&status);
-            return 0;
+    STARTUPINFO info;
+    PROCESS_INFORMATION processInfo;
+    char cmd[2048] = {0};
+
+    snprintf(cmd, sizeof(cmd), "tcc %s -o finalexe.exe", slf->genfile);
+    if (!CreateProcess(NULL, cmd, NULL, NULL, TRUE, 0, NULL, NULL,
+                &info, &processInfo))
+    {
+        fprintf(stderr, "Can't CreateProcess(): %i\n", GetLastError());
+        return -1;
     }
-#endif
+    WaitForSingleObject(processInfo.hProcess, INFINITE);
+    CloseHandle(processInfo.hProcess);
+    CloseHandle(processInfo.hThread);
+    return 0;
 }
 #else
 static int alonexec_compile(alonexec_t *slf)
 {
     int status = 0;
     pid_t pid = fork();
-    
+   
     switch (pid) {
         case 0:
             printf("Compiling final executable...\n");
-            execlp("gcc", "gcc", "-O2", "-x", "c", slf->genfile,
+            execlp("gcc", "gcc", "-O2", slf->genfile,
                     "-o", "finalexe", NULL);
+#if 0
+            execlp("tcc", "tcc", slf->genfile,
+                    "-o", "finalexe", NULL);
+#endif
             return -1;
         case -1:
             perror("fork");
@@ -234,13 +234,7 @@ alonexec_t *alonexec_init(char *tpl, char **opts)
     res->tpl = tpl;
     res->listfiles = NULL;
     snprintf(res->genfile, sizeof(res->genfile),
-            "%s/%s", ALONEXEC_WORKDIR, "alonexecgen.c.XXXXXX");
-    if (mkstemp(res->genfile) < 0) {
-        perror("mkstemp");
-        fprintf(stderr, "%i:%s Can't create %s\n", __LINE__,
-                __FUNCTION__, res->genfile);
-        exit(EXIT_FAILURE);
-    }
+            "%s/%s", getTempDirectory(), "alonexecgen.c");
     if (!(res->fgenfile = fopen(res->genfile, "w+"))) {
         perror("fopen");
         fprintf(stderr, "%i:%s Can't open %s\n", __LINE__,

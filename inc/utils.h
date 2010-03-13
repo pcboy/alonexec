@@ -2,6 +2,7 @@
 #define __UTILS_H__
 
 int notQuote(int c);
+const char *getTempDirectory(void);
 char *removeChars(char *line, int (*keepEq)(int));
 char *getNextToken(char *line);
 ssize_t getFileSize(char *file);

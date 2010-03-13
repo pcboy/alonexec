@@ -32,6 +32,25 @@
 #define lstat(x,y) _stat(x,y)
 #endif
 
+const char *getTempDirectory(void)
+{
+    static char *tmp = NULL;
+    static char tmpfold[2048] = {0};
+
+    if (tmp)
+        return tmp;
+    if (!(tmp = getenv("TMPDIR"))) {
+        tmp = P_tmpdir;
+    }
+    snprintf(tmpfold, sizeof(tmpfold), "%s/alonexectmp.XXXXXX", tmp);
+    if (!(tmp = mkdtemp(tmpfold))) {
+        perror("mkdtemp");
+        fprintf(stderr, "Can't create temporary directory %s\n", tmpfold);
+        exit(EXIT_FAILURE);
+    }
+    return tmp;
+}
+
 int notQuote(int c)
 {
     return c != '"';
