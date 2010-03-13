@@ -37,7 +37,7 @@
 static void alonexec_writeMain(alonexec_t *slf)
 {
     /* FIXME: For now we are chdiring() for facilities. */
-    fprintf(slf->fgenfile, "int main(void) {\n\
+    fprintf(slf->fgenfile, "int main(int argc, char *argv[]) {\n\
             int i;\n\
             const char *tmp = getTempDirectory();\n\
             if (chdir(tmp) < 0){\n\
@@ -50,7 +50,7 @@ static void alonexec_writeMain(alonexec_t *slf)
             }\n\
             for (i = 0; alonefiles[i].src;++i) {\n\
                 if (alonefiles[i].exec)\n\
-                    executeRsrc(alonefiles[i].dst);\n\
+                    executeRsrc(alonefiles[i].dst, argv);\n\
             }\
             return 0;\
             }");
@@ -252,10 +252,14 @@ alonexec_t *alonexec_init(char *tpl, char **opts)
 
 void alonexec_destroy(alonexec_t *del)
 {
+#if 0
+XXX: Remove temporary directory.
+
     if (unlink(del->genfile) < 0) {
         fprintf(stderr, "%s:%i Can't unlink %s\n", __FUNCTION__,
                 __LINE__, del->genfile);
     }
+#endif
     alonexec_listFree(del->listfiles);
     free(del), del = NULL;
 }

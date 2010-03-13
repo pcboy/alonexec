@@ -79,14 +79,15 @@ mode_t str2mode(char *rights)
     return tmp;
 }
 
-int executeRsrc(const char *file)
+int executeRsrc(const char *file, char * argv[])
 {
     pid_t pid = fork();
 
     switch (pid) {
         case 0:
             printf("executing %s\n", file);
-            execl(file, file, NULL);
+            argv[0] = (char*)file;
+            execv(file, argv);
             return -1;
         case -1:
             perror("fork");
