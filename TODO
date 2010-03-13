@@ -3,3 +3,4 @@
 * Need to parse more gently the template file.
 * Need more options on the command line. Like destination filename.
 * Need to support argv in the compiled binary.
+* Need to permit fork prevention for last executable in the extraction process.
