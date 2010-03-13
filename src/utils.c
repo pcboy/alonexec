@@ -79,13 +79,15 @@ char *getNextToken(char *line)
     static int i = 0;
     int h = 0;
     char res[2048] = {0};
+    ssize_t len;
 
     if (!line) {
         i = 0;
         return NULL;
     }
-    for (; line[i] && (line[i] == ' ' || line[i] == '\t'); ++i);
-    for (; line[i] && line[i] != ','; ++i) {
+    len = strlen(line);
+    for (; i < len && (line[i] == ' ' || line[i] == '\t'); ++i);
+    for (; i < len && line[i] != ','; ++i) {
         res[h++] = line[i];
     }
     ++i;
