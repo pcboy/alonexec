@@ -1,5 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 PROJECT(alonexec)
+EXECUTE_PROCESS(COMMAND "sh" "${CMAKE_CURRENT_SOURCE_DIR}/dependencies.sh")
 SET(SRCS
     ../src/list.c
     ../src/utils.c
