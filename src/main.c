@@ -22,12 +22,9 @@
 static void usage(char *argv[])
 {
     fprintf(stderr, "usage: %s <file.alonexec>\n"
-            "An alonexe file is of the type:\n"
-            "{\"executableSrc\", \"executableDest\", \"rwxr-xr-x\", true},\n"
-            "{\"bdd.sqlite\", \"bddDestName.sqlite\", \"rwxr-xr-x\", false}\n\n"
-            "Each element follows this model:\n"
-            "{\"sourceName\", \"destinationName\", \"file's permissions\","
-            "executeAfterLaunch(boolean)}\n"
+            "An alonexe file use an s-expression syntax like that:\n"
+            "(name (sourcepath \"./namefile\") (destpath \"./destpath\")\n"
+            "(mode \"rwxr-xr-x\") (autostart true))\n"
             "\nhttp://bitbucket.org/pcboy/alonexec for more information.\n"
             , argv[0]);
 }
