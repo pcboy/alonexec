@@ -148,3 +148,24 @@ char *my_getLine(char *content, size_t *len)
     *len = h;
     return h ? strdup(res) : NULL;
 }
+
+unsigned long hash(unsigned char *str)
+{
+    unsigned long hash = 5381;
+    while(*str!='\0') {
+        int c = *str;
+        /* hash = hash*33 + c */
+        hash = ((hash << 5) + hash) + c;
+        str++;
+    }
+    return hash;
+}
+
+char *lowercase(char *str)
+{
+    char *p = str;
+    while (*p++) {
+        *p = tolower(*p);
+    }
+    return str;
+}

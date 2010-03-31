@@ -20,6 +20,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <fcntl.h>
 
 #ifndef _WIN32
 #include <sys/wait.h>
@@ -28,6 +29,8 @@
 #include <windows.h>
 #define mkstemp(x) _mktemp(x)
 #endif
+
+#include <sexp.h>
 
 #include "alonexec.h"
 #include "utils.h"
@@ -74,8 +77,9 @@ static void alonexec_writeSpecTable(alonexec_t *slf)
     fprintf(slf->fgenfile, "alonexec_spec alonefiles[] = {\n");
     for (it = slf->listfiles; it; it = it->next) {
         alonexec_spec *spec = it->data;
-        fprintf(slf->fgenfile, "{%s,%s,%s,%i,%s,%i},\n", spec->src, spec->dst,
-                spec->perms, spec->exec, spec->content, spec->contentlen);
+        fprintf(slf->fgenfile, "{\"%s\",\"%s\",\"%s\",%i,%s,%i},\n",
+                spec->src, spec->dst, spec->perms, spec->exec,
+                spec->content, spec->contentlen);
     }
     fprintf(slf->fgenfile, "{NULL, NULL, NULL, 0, NULL, 0}");
     fprintf(slf->fgenfile, "\n};\n");
@@ -94,7 +98,7 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
     stripname = removeChars(spec->src, isalpha);
     filename = removeChars(spec->src, notQuote);
     content = getFileContents(filename);
-    printf("Packing %s\n", stripname);
+    printf("Packing %s\n", filename);
     fprintf(slf->fgenfile, "static char %s[] = {", stripname);
     if ((siz = getFileSize(filename)) < 0) {
         fprintf(stderr, "%s:%i Can't get %s file size.\n",
@@ -134,50 +138,56 @@ static void alonexec_writeAllRsrc(alonexec_t *slf)
 
 static void alonexec_parseTpl(alonexec_t* slf, char *tpl)
 {
-    char *tplcontent = getFileContents(tpl);
-    size_t len = 0;
-    int pass = 0;
-    char *line;
-    bool first = true;
+    sexp_t *sx = NULL;
+    sexp_iowrap_t *iow;
+    int fd;
 
-    my_getLine(NULL, &len);
-
-    while ((line = my_getLine(tplcontent, &len))) {
-        if (line[0] == '#') /* It's a comment. */
-            continue;
-        char *token;
-        char *p = line;
+    if ((fd = open(tpl, O_RDONLY, 0)) < 0) {
+        perror("open");
+        fprintf(stderr, "Can't parse %s\n", tpl);
+        exit(EXIT_FAILURE);
+    }
+    if (!(iow = init_iowrap(fd))) {
+        perror("init_iowrap");
+        fprintf(stderr, "init_iowrap(%i) failed\n", fd);
+        exit(EXIT_FAILURE);
+    }
+    while ((sx = read_one_sexp(iow))) {
+        struct elt *n = sx->list;
         alonexec_spec *spec = malloc(sizeof(alonexec_spec));
-        while (*p && *p != '"') p++;
-        while ((token = getNextToken(p))) {
-            ++pass;
-            switch(pass) {
-                case 1:
-                    spec->src = strdup(token);
-                    break;
-                case 2:
-                    spec->dst = strdup(token);
-                    break;
-                case 3:
-                    spec->perms = strdup(token);
-                    break;
-                case 4:
-                    spec->exec = (token[0] == 't' ? true : false);
-                    break;
+        for (n = sx->list; n; n = n->next) {
+            if (n->ty == SEXP_LIST) {
+                switch (hash((unsigned char*)lowercase(n->list->val))) {
+                    case 3090735331lu: /* sourcepath */
+                        spec->src = strdup(n->list->next->val);
+                        break;
+                    case 953670466lu: /* destpath */
+                        spec->dst = strdup(n->list->next->val);
+                        break;
+                    case 2090515018lu: /* mode */
+                        spec->perms = strdup(n->list->next->val);
+                        break;
+                    case 4228650444lu: /* autostart */
+                        spec->exec = (n->list->next->val[0] == 't'
+                                ? true : false);
+                        break;
+                    default:
+                        fprintf(stderr, "Unknown parameter %s in %s\n",
+                                n->list->val, tpl);
+                        exit(EXIT_FAILURE);
+                        break;
+                }
             }
-            free(token);
         }
-        pass = 0;
-        if (first) {
+        if (!slf->listfiles) {
             slf->listfiles = alonexec_listInsert(&(slf->listfiles), spec);
-            first = false;
         } else {
             alonexec_listInsert(&(slf->listfiles), spec);
         }
-        getNextToken(NULL);
-        free(line);
+        destroy_sexp(sx);
     }
-    free(tplcontent);
+    destroy_iowrap(iow);
+    close(fd);
 }
 
 #if defined(_WIN32)
@@ -256,6 +266,7 @@ XXX: Remove temporary directory.
                 __LINE__, del->genfile);
     }
 #endif
+    sexp_cleanup();
     alonexec_listFree(del->listfiles);
     free(del), del = NULL;
 }
