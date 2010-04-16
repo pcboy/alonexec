@@ -9,6 +9,11 @@
 #define ALONEXEC_SPECFILE "../rsrc/spec.h"
 #define ALONEXEC_FCTFILE "../rsrc/prefunctions.c"
 
+#define CONFIG_SOURCEPATH 3090735331lu
+#define CONFIG_DESTPATH 953670466lu
+#define CONFIG_MODE 2090515018lu
+#define CONFIG_AUTOSTART 4228650444lu
+
 typedef struct alonexec_s {
     int (*compile)(struct alonexec_s*);
     /**/

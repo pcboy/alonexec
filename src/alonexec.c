@@ -158,16 +158,16 @@ static void alonexec_parseTpl(alonexec_t* slf, char *tpl)
         for (n = sx->list; n; n = n->next) {
             if (n->ty == SEXP_LIST) {
                 switch (hash((unsigned char*)lowercase(n->list->val))) {
-                    case 3090735331lu: /* sourcepath */
+                    case CONFIG_SOURCEPATH:
                         spec->src = strdup(n->list->next->val);
                         break;
-                    case 953670466lu: /* destpath */
+                    case CONFIG_DESTPATH:
                         spec->dst = strdup(n->list->next->val);
                         break;
-                    case 2090515018lu: /* mode */
+                    case CONFIG_MODE:
                         spec->perms = strdup(n->list->next->val);
                         break;
-                    case 4228650444lu: /* autostart */
+                    case CONFIG_AUTOSTART:
                         spec->exec = (n->list->next->val[0] == 't'
                                 ? true : false);
                         break;
