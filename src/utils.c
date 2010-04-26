@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <errno.h>
 #include <ctype.h>
 
 #ifdef _WIN32
@@ -126,6 +127,12 @@ file_t *getFileContents(char *file)
     }
     res->data = mmap(NULL, sizeof(char) * res->len,
             PROT_READ, MAP_PRIVATE, fd, 0);
+    if (res->data == MAP_FAILED) {
+        perror("mmap");
+        fprintf(stderr, "Can't mmap() %s.\n", file);
+        free(res);
+        return NULL;
+    }
     close(fd);
     return res;
 }
@@ -134,7 +141,8 @@ int closeFile(file_t *f)
 {
     int res;
 
-    res = munmap(f->data, f->len);
+    if ((res = munmap(f->data, f->len)) == EINVAL)
+        perror("munmap");
     free(f), f = NULL;
     return res;
 }
