@@ -61,19 +61,19 @@ static void alonexec_writeMain(alonexec_t *slf)
 
 static void alonexec_writeFunctions(alonexec_t *slf)
 {
-    char *fcts = getFileContents(ALONEXEC_FCTFILE);
+    file_t *fcts = getFileContents(ALONEXEC_FCTFILE);
     
-    fprintf(slf->fgenfile, "%s", fcts);
-    free(fcts);
+    fprintf(slf->fgenfile, "%s", fcts->data);
+    closeFile(fcts);
     alonexec_writeMain(slf);
 }
 
 static void alonexec_writeSpecTable(alonexec_t *slf)
 {
-    char *speccontent = getFileContents(ALONEXEC_SPECFILE);
+    file_t *speccontent = getFileContents(ALONEXEC_SPECFILE);
     alonexec_list_t *it;
 
-    fprintf(slf->fgenfile, "%s", speccontent);
+    fprintf(slf->fgenfile, "%s", speccontent->data);
     fprintf(slf->fgenfile, "alonexec_spec alonefiles[] = {\n");
     for (it = slf->listfiles; it; it = it->next) {
         alonexec_spec *spec = it->data;
@@ -83,14 +83,14 @@ static void alonexec_writeSpecTable(alonexec_t *slf)
     }
     fprintf(slf->fgenfile, "{NULL, NULL, NULL, 0, NULL, 0}");
     fprintf(slf->fgenfile, "\n};\n");
-    free(speccontent);
+    closeFile(speccontent);
 }
 
 static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
 {
     char *stripname, *filename;
     char *rsrc;
-    char *content;
+    file_t *content;
     int i;
     ssize_t siz;
     ssize_t wrotelen = 0;
@@ -105,7 +105,7 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
                 __FILE__, __LINE__, filename);
         free(stripname);
         free(filename);
-        free(content);
+        closeFile(content);
         return;
     }
     spec->content = stripname ? strdup(stripname) : NULL;
@@ -115,7 +115,7 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
         char oct[8] = {0};
         ssize_t wrote;
         wrote = snprintf(oct, sizeof(oct), "0x%x%c",
-                content[i] & 0xff, (i+1 != siz ? ',' : ' '));
+                content->data[i] & 0xff, (i+1 != siz ? ',' : ' '));
         memcpy(rsrc + wrotelen, oct, wrote);
         wrotelen += wrote;
     }
@@ -123,7 +123,7 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
     fprintf(slf->fgenfile, "};\n");
     free(stripname);
     free(filename);
-    free(content);
+    closeFile(content);
     free(rsrc);
 }
 
@@ -197,7 +197,7 @@ static int alonexec_compile(alonexec_t *slf)
     PROCESS_INFORMATION processInfo;
     char cmd[2048] = {0};
 
-    snprintf(cmd, sizeof(cmd), "tcc %s -o finalexe.exe", slf->genfile);
+    snprintf(cmd, sizeof(cmd), "tcc %s -o %s", slf->genfile, slf->destfile);
     if (!CreateProcess(NULL, cmd, NULL, NULL, TRUE, 0, NULL, NULL,
                 &info, &processInfo))
     {

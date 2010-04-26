@@ -16,6 +16,7 @@
  */
 
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -28,6 +29,8 @@
 #include <malloc.h>
 #define lstat(x,y) _stat(x,y)
 #endif
+
+#include "utils.h"
 
 const char *getTempDirectory(void)
 {
@@ -104,29 +107,35 @@ ssize_t getFileSize(char *file)
     return s.st_size;
 }
 
-char *getFileContents(char *file)
+file_t *getFileContents(char *file)
 {
     ssize_t siz;
-    char *res;
+    file_t *res;
     int fd;
 
     if ((siz = getFileSize(file)) < 0) {
         return NULL;
     }
-    res = malloc(sizeof(char) * siz+1);
+    res = malloc(sizeof(file_t));
+    res->len = siz;
     if ((fd = open(file, O_RDONLY, 0)) < 0) {
         perror("open");
         fprintf(stderr, "Can't open %s\n", file);
         free(res);
         return NULL;
     }
-    if (read(fd, res, sizeof(char) * siz) < 0) {
-        perror("read");
-        free(res);
-        return NULL;
-    }
-    res[siz] = '\0';
+    res->data = mmap(NULL, sizeof(char) * res->len,
+            PROT_READ, MAP_PRIVATE, fd, 0);
     close(fd);
+    return res;
+}
+
+int closeFile(file_t *f)
+{
+    int res;
+
+    res = munmap(f->data, f->len);
+    free(f), f = NULL;
     return res;
 }
 
