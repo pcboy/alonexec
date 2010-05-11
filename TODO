@@ -1,6 +1,6 @@
 * Need to specify dynamic options for temporary directory.
 * Need to port it to __APPLE__ and _WIN32.
-* Need to parse more gently the template file.
+* Need to thread extraction (optionnal).
 * Need more options on the command line. Like destination filename.
 * Need to permit fork prevention for last executable in the extraction process.
 * Need to fix argv handling when files relative paths involved.
