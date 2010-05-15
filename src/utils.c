@@ -75,27 +75,6 @@ char *removeChars(char *line, int (*keepEq)(int))
     return h ? strdup(res) : NULL;
 }
 
-char *getNextToken(char *line)
-{
-    static int i = 0;
-    int h = 0;
-    char res[2048] = {0};
-    ssize_t len;
-
-    if (!line) {
-        i = 0;
-        return NULL;
-    }
-    len = strlen(line);
-    for (; i < len && (line[i] == ' ' || line[i] == '\t'); ++i);
-    for (; i < len && line[i] != ','; ++i) {
-        res[h++] = line[i];
-    }
-    ++i;
-    res[h] = '\0';
-    return h ? strdup(res) : NULL;
-}
-
 ssize_t getFileSize(char *file)
 {
     struct stat s;
@@ -145,25 +124,6 @@ int closeFile(file_t *f)
         perror("munmap");
     free(f), f = NULL;
     return res;
-}
-
-char *my_getLine(char *content, size_t *len)
-{
-    static int i = 0;
-    int h = 0;
-    char res[1024] = {0}; 
-
-    if (!content) {
-        i = 0;
-        return NULL;
-    }
-    for (; content[i] && content[i] != '\n'; ++i) {
-        res[h++] = content[i];
-    }
-    ++i;
-    res[h] = '\0';
-    *len = h;
-    return h ? strdup(res) : NULL;
 }
 
 unsigned long hash(unsigned char *str)

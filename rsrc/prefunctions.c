@@ -112,7 +112,7 @@ static int executeRsrc(const char *file, char * argv[])
 
 static void recurseMkdir(const char *dir)
 {
-    char tmp[PATH_MAX];
+    char tmp[PATH_MAX] = {0};
     char *p = NULL;
     size_t len;
 
