@@ -93,7 +93,7 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
     file_t *content;
     int i;
     ssize_t siz;
-    ssize_t wrotelen = 0;
+    size_t wrotelen = 0;
 
     stripname = removeChars(spec->src, isalpha);
     filename = removeChars(spec->src, notQuote);
@@ -119,7 +119,8 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
         memcpy(rsrc + wrotelen, oct, wrote);
         wrotelen += wrote;
     }
-    fwrite(rsrc, sizeof(char), wrotelen, slf->fgenfile);
+    if ((fwrite(rsrc, sizeof(char), wrotelen, slf->fgenfile) != wrotelen))
+        perror("fwrite");
     fprintf(slf->fgenfile, "};\n");
     free(stripname);
     free(filename);
@@ -156,6 +157,9 @@ static void alonexec_parseTpl(alonexec_t* slf, char *tpl)
         struct elt *n = sx->list;
         alonexec_spec *spec = malloc(sizeof(alonexec_spec));
         for (n = sx->list; n; n = n->next) {
+            if (hash((unsigned char*)lowercase(n->val)) == CONFIG_ALONEXEC) {
+                printf("une");
+            }
             if (n->ty == SEXP_LIST) {
                 switch (hash((unsigned char*)lowercase(n->list->val))) {
                     case CONFIG_SOURCEPATH:

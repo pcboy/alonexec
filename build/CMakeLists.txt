@@ -7,7 +7,7 @@ SET(SRCS
     ../src/alonexec.c
     ../src/main.c
     )
-SET(CMAKE_C_FLAGS "-W -Wall -Wextra -O2")
+SET(CMAKE_C_FLAGS "-W -Wall -Wextra -O2 -g3")
 INCLUDE_DIRECTORIES(../inc/ sexpr_1.2/src/)
 LINK_DIRECTORIES(sexpr_1.2/src/)
 ADD_EXECUTABLE(alonexec ${SRCS})
