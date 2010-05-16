@@ -33,7 +33,9 @@ int main(int argc, char *argv[])
 {
     if (argc > 1) {
         alonexec_t *alone = alonexec_init(argv[1], argv);
-        alone->compile(alone);
+        if (alone->compile(alone) < 0) {
+            fprintf(stderr, "Compilation failed\n");
+        }
         alonexec_destroy(alone);
         return EXIT_SUCCESS;
     }

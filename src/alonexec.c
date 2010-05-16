@@ -42,6 +42,7 @@ static void alonexec_writeMain(alonexec_t *slf)
     /* FIXME: For now we are chdiring() for facilities. */
     fprintf(slf->fgenfile, "int main(int argc, char *argv[]) {\n\
             int i;\n\
+            (void)argc;\n\
             const char *tmp = getTempDirectory();\n\
             if (chdir(tmp) < 0){\n\
                 perror(\"chdir\");\n\
@@ -223,12 +224,14 @@ static int alonexec_compile(alonexec_t *slf)
         case 0:
             printf("Compiling final executable...\n");
 #if defined(USE_GCC)
-            execl("gcc", "gcc", "-W", "-Wall", slf->genfile,
+            execlp("gcc", "gcc", "-W", "-Wall", slf->genfile,
                     "-o", "finalexe", NULL);
 #else
             execl("tcc", "tcc", "-W", "-Wall", slf->genfile,
                     "-o", "finalexe", NULL);
 #endif
+            perror("execl");
+            fprintf(stderr, "Can't execute compiler on %s\n", slf->genfile);
             return -1;
         case -1:
             perror("fork");

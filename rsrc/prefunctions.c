@@ -157,15 +157,3 @@ static void copyRsrc(const char *src, const char *dst, char *perms,
         fprintf(stderr, "Can't chmod %s to %s\n", dst, perms);
     }
 }
-
-static const char *lastCurrentDir(bool reset)
-{
-    static const char dir[PATH_MAX] = {0};
-    static char *res = NULL;
-
-    if (res && !reset)
-        return res;
-    res = getcwd(res, sizeof(res));
-    return res;
-}
-
