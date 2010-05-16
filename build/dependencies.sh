@@ -15,8 +15,8 @@ function compile_sexp() {
     echo -e "Getting sexpr library\n\n"
     wget $SEXP_SOURCE &&\
              tar xvf sexpr_$SEXP_VERSION.tar.gz &&\
-             pushd sexpr_$SEXP_VERSION/ && ./configure && make &&\
-             popd && echo -e "\n\nSexpr library successfully built"
+             pushd sexpr_$SEXP_VERSION/ && ./configure && pushd src && make &&\
+             popd && popd && echo -e "\n\nSexpr library successfully built"
 
     if [ -f sexpr_$SEXP_VERSION.tar.gz ];then
         rm -f sexpr_$SEXP_VERSION.tar.gz
