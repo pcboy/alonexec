@@ -222,8 +222,13 @@ static int alonexec_compile(alonexec_t *slf)
     switch (pid) {
         case 0:
             printf("Compiling final executable...\n");
+#if defined(USE_GCC)
+            execl("gcc", "gcc", "-W", "-Wall", slf->genfile,
+                    "-o", "finalexe", NULL);
+#else
             execl("tcc", "tcc", "-W", "-Wall", slf->genfile,
                     "-o", "finalexe", NULL);
+#endif
             return -1;
         case -1:
             perror("fork");
