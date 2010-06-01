@@ -219,15 +219,20 @@ static int alonexec_compile(alonexec_t *slf)
 {
     int status = 0;
     pid_t pid = fork();
-   
+    const char *debug = "-DDEBUG";
+
+#if defined(NDEBUG)
+    debug = "-DNDEBUG";
+#endif
+
     switch (pid) {
         case 0:
             printf("Compiling final executable...\n");
 #if defined(USE_GCC)
-            execlp("gcc", "gcc", "-W", "-Wall", slf->genfile,
+            execlp("gcc", "gcc", "-W", "-Wall", debug, slf->genfile,
                     "-o", "finalexe", NULL);
 #else
-            execl("tcc", "tcc", "-W", "-Wall", slf->genfile,
+            execl("tcc", "tcc", "-W", "-Wall", debug, slf->genfile,
                     "-o", "finalexe", NULL);
 #endif
             perror("execl");

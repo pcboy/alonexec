@@ -98,7 +98,9 @@ static int executeRsrc(const char *file, char * argv[])
 
     switch (pid) {
         case 0:
+#ifndef NDEBUG
             printf("executing %s\n", file);
+#endif
             argv[0] = (char*)file;
             execv(file, argv);
             return -1;
@@ -135,7 +137,8 @@ static void copyRsrc(const char *src, const char *dst, char *perms,
     FILE *fp;
     int i;
     char folder[PATH_MAX];
-   
+  
+    (void)src;
     strncpy(folder, dst, sizeof(folder));
     for (i = 0; folder[i]; ++i);
     for (--i; i && folder[i] != PATH_SEPARATOR; --i);
@@ -149,7 +152,9 @@ static void copyRsrc(const char *src, const char *dst, char *perms,
         fprintf(stderr, "Can't fopen %s\n", dst);
         return;
     }
+#ifndef NDEBUG
     printf("Copying %s to %s with %s\n", src, dst, perms);
+#endif
     fwrite(content, sizeof(char), len, fp);
     fclose(fp);
     if (chmod(dst, str2mode(perms)) < 0) {
