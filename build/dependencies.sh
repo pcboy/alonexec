@@ -49,3 +49,5 @@ compile_sexp
 compile_TCC
 
 cd $LASTDIR
+
+echo -e "\nNow you can type make."
