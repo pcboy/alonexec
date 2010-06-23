@@ -40,8 +40,8 @@ function compile_TCC() {
              pushd tcc-$TCC_VERSION/ && ./configure && make && mv tcc ../ &&\
              popd && echo -e "\n\nTCC successfully built"
 
-    if [ -f tcc_$TCC_VERSION.tar.bz2 ];then
-        rm -f tcc_$TCC_VERSION.tar.bz2
+    if [ -f tcc-$TCC_VERSION.tar.bz2 ];then
+        rm -f tcc-$TCC_VERSION.tar.bz2
     fi
 }
 
