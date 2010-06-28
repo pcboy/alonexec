@@ -15,8 +15,13 @@
  *  David Hagege <david.hagege@gmail.com>
  */
 
-#include <sys/stat.h>
+#if defined(_WIN32)
+#include <io.h>
+#else
 #include <sys/mman.h>
+#endif /* _WIN32 */
+
+#include <sys/stat.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -29,27 +34,31 @@
 #include <sys/types.h>
 #include <malloc.h>
 #define lstat(x,y) _stat(x,y)
+#define mkdir(x,y) mkdir(x)
 #endif
 
+#include "cross.h"
 #include "utils.h"
 
-const char *getTempDirectory(void)
+const char *getTempDirectory(int id)
 {
     static char *tmp = NULL;
-    static char tmpfold[2048] = {0};
+    static char tmpf[2048] = {0};
 
     if (tmp)
         return tmp;
     if (!(tmp = getenv("TMPDIR"))) {
+#ifndef _WIN32
         tmp = P_tmpdir;
+#else
+        tmp = alloca(1024);
+        GetCurrentDirectory(1024, tmp);
+#endif
     }
-    snprintf(tmpfold, sizeof(tmpfold), "%s/alonexectmp.XXXXXX", tmp);
-    if (!(tmp = mkdtemp(tmpfold))) {
-        perror("mkdtemp");
-        fprintf(stderr, "Can't create temporary directory %s\n", tmpfold);
-        exit(EXIT_FAILURE);
-    }
-    return tmp;
+    snprintf(tmpf, sizeof(tmpf), "%s%calonexectmp.%i",
+            tmp, CROSS_SLASH, id);
+    mkdir(tmpf, 0755);
+    return tmpf;
 }
 
 int notQuote(int c)
@@ -91,28 +100,28 @@ file_t *getFileContents(char *file)
 {
     ssize_t siz;
     file_t *res;
-    int fd;
 
     if ((siz = getFileSize(file)) < 0) {
         return NULL;
     }
     res = malloc(sizeof(file_t));
     res->len = siz;
-    if ((fd = open(file, O_RDONLY, 0)) < 0) {
+    if ((res->fd = open(file, O_RDONLY, 0)) < 0) {
         perror("open");
         fprintf(stderr, "Can't open %s\n", file);
         free(res);
         return NULL;
     }
-    res->data = mmap(NULL, sizeof(char) * res->len,
-            PROT_READ, MAP_PRIVATE, fd, 0);
-    if (res->data == MAP_FAILED) {
+    res->data = cross_mmap(NULL, sizeof(char) * res->len,
+            PROT_READ, MAP_PRIVATE, res->fd, 0);
+
+    if (res->data == (void*)MAP_FAILED) {
         perror("mmap");
         fprintf(stderr, "Can't mmap() %s.\n", file);
         free(res);
+        close(res->fd);
         return NULL;
     }
-    close(fd);
     return res;
 }
 
@@ -120,8 +129,8 @@ int closeFile(file_t *f)
 {
     int res;
 
-    if ((res = munmap(f->data, f->len)) == EINVAL)
-        perror("munmap");
+    res = cross_munmap(f->data, f->len);
+    close(f->fd);
     free(f), f = NULL;
     return res;
 }

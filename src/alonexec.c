@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <fcntl.h>
+#include <time.h>
 
 #ifndef _WIN32
 #include <sys/wait.h>
@@ -35,6 +36,7 @@
 #include "alonexec.h"
 #include "utils.h"
 #include "list.h"
+#include "cross.h"
 #include "../rsrc/spec.h"
 
 static void alonexec_writeMain(alonexec_t *slf)
@@ -43,7 +45,7 @@ static void alonexec_writeMain(alonexec_t *slf)
     fprintf(slf->fgenfile, "int main(int argc, char *argv[]) {\n\
             int i;\n\
             (void)argc;\n\
-            const char *tmp = getTempDirectory();\n\
+            const char *tmp = getTempDirectory(%i);\n\
             if (chdir(tmp) < 0){\n\
                 perror(\"chdir\");\n\
             }\n\
@@ -56,8 +58,8 @@ static void alonexec_writeMain(alonexec_t *slf)
                 if (alonefiles[i].exec)\n\
                     executeRsrc(alonefiles[i].dst, argv);\n\
             }\
-            return 0;\
-            }");
+            return 0;\n\
+            }\n", slf->id);
 }
 
 static void alonexec_writeFunctions(alonexec_t *slf)
@@ -158,9 +160,12 @@ static void alonexec_parseTpl(alonexec_t* slf, char *tpl)
         struct elt *n = sx->list;
         alonexec_spec *spec = malloc(sizeof(alonexec_spec));
         for (n = sx->list; n; n = n->next) {
+#if 0
             if (hash((unsigned char*)lowercase(n->val)) == CONFIG_ALONEXEC) {
-                printf("une");
+                /* XXX: needed in a near future for alonexec
+                   general configuration. */
             }
+#endif
             if (n->ty == SEXP_LIST) {
                 switch (hash((unsigned char*)lowercase(n->list->val))) {
                     case CONFIG_SOURCEPATH:
@@ -202,11 +207,15 @@ static int alonexec_compile(alonexec_t *slf)
     PROCESS_INFORMATION processInfo;
     char cmd[2048] = {0};
 
-    snprintf(cmd, sizeof(cmd), "tcc %s -o %s", slf->genfile, slf->destfile);
-    if (!CreateProcess(NULL, cmd, NULL, NULL, TRUE, 0, NULL, NULL,
+    memset(&info, 0, sizeof(info));
+    memset(&processInfo, 0, sizeof(processInfo));
+    snprintf(cmd, sizeof(cmd), "\"%s\" \"%s\" -o \"%s\"", ALONEXEC_CC,
+            slf->genfile, "final.exe");
+    if (!CreateProcessA(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL,
                 &info, &processInfo))
     {
-        fprintf(stderr, "Can't CreateProcess(): %i\n", GetLastError());
+        fprintf(stderr, "Can't CreateProcess(): %lu %s\n",
+                GetLastError(), cmd);
         return -1;
     }
     WaitForSingleObject(processInfo.hProcess, INFINITE);
@@ -228,15 +237,11 @@ static int alonexec_compile(alonexec_t *slf)
     switch (pid) {
         case 0:
             printf("Compiling final executable...\n");
-#if defined(USE_GCC)
-            execlp("gcc", "gcc", "-W", "-Wall", debug, slf->genfile,
+            execlp(ALONEXEC_CC, ALONEXEC_CC, "-W", "-Wall", debug, slf->genfile,
                     "-o", "finalexe", NULL);
-#else
-            execl("tcc", "tcc", "-W", "-Wall", debug, slf->genfile,
-                    "-o", "finalexe", NULL);
-#endif
-            perror("execl");
-            fprintf(stderr, "Can't execute compiler on %s\n", slf->genfile);
+            perror("execlp");
+            fprintf(stderr, "Can't execute %s on %s\n", ALONEXEC_CC,
+                    slf->genfile);
             return -1;
         case -1:
             perror("fork");
@@ -257,13 +262,15 @@ alonexec_t *alonexec_init(char *tpl, char **opts)
     res->tpl = tpl;
     res->listfiles = NULL;
     snprintf(res->genfile, sizeof(res->genfile),
-            "%s/%s", getTempDirectory(), "alonexecgen.c");
+            "%s%c%s", getTempDirectory(res->id), CROSS_SLASH, "alonexecgen.c");
     if (!(res->fgenfile = fopen(res->genfile, "w+"))) {
         perror("fopen");
         fprintf(stderr, "%i:%s Can't open %s\n", __LINE__,
                 __FUNCTION__, res->genfile);
         exit(EXIT_FAILURE);
     }
+    srand(time(NULL));
+    res->id = rand();
     alonexec_parseTpl(res, tpl);
     alonexec_writeAllRsrc(res);
     alonexec_writeSpecTable(res); /*XXX:SpecTable must be written after Rsrc.*/

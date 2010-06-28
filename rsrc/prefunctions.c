@@ -18,16 +18,20 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <stdio.h>
-#include <alloca.h>
 #include <string.h>
 
 #if defined(_WIN32)
-#define PATH_SEPARATOR '\\'
+#include <windows.h>
+#include <malloc.h>
+#define mkdir(x,y) mkdir(x)
+
+#define CROSS_SLASH '\\'
 #else
-#define PATH_SEPARATOR '/'
+#define CROSS_SLASH '/'
 #endif
 
 #ifdef __linux__
+#include <alloca.h>
 #include <linux/limits.h>
 #endif
 
@@ -35,26 +39,26 @@
 #define PATH_MAX 4096
 #endif
 
-#if !defined(_WIN32)
-static const char *getTempDirectory(void)
+const char *getTempDirectory(int id)
 {
     static char *tmp = NULL;
-    static char tmpfold[2048] = {0};
+    static char tmpf[2048] = {0};
 
     if (tmp)
         return tmp;
     if (!(tmp = getenv("TMPDIR"))) {
+#if defined(_WIN32)
+        tmp = alloca(2048);
+        GetTempPath(2048, tmp);
+#else
         tmp = P_tmpdir;
-    }
-    snprintf(tmpfold, sizeof(tmpfold), "%s/alonexectmp.XXXXXX", tmp);
-    if (!(tmp = mkdtemp(tmpfold))) {
-        perror("mkdtemp");
-        fprintf(stderr, "Can't create temporary directory %s\n", tmpfold);
-        exit(EXIT_FAILURE);
-    }
-    return tmp;
-}
 #endif
+    }
+    snprintf(tmpf, sizeof(tmpf), "%s%calonexectmp.%i",
+            tmp, CROSS_SLASH, id);
+    mkdir(tmpf, 0755); /* XXX: Check if already exists */
+    return tmpf;
+}
 
 static mode_t str2mode(char *rights)
 {
@@ -92,24 +96,56 @@ static mode_t str2mode(char *rights)
     return tmp;
 }
 
-static int executeRsrc(const char *file, char * argv[])
+int crossExec(const char *file, char *const argv[])
 {
-    pid_t pid = fork();
+    int pid;
 
+#if defined(__linux__)
+    extern char **environ;
+
+    pid = fork();
     switch (pid) {
         case 0:
-#ifndef NDEBUG
-            printf("executing %s\n", file);
-#endif
-            argv[0] = (char*)file;
-            execv(file, argv);
-            return -1;
+            execve(file, argv, environ);
+            fprintf(stderr, "Can't exec %s\n", file);
+            perror("execve");
+            exit(EXIT_FAILURE);
+            break;
         case -1:
+            fprintf(stderr, "Can't fork()\n");
             perror("fork");
-            return -1;
-        default:
-            return 0;
+            break;
     }
+    return pid;
+#elif defined(_WIN32)
+    STARTUPINFO info;
+    PROCESS_INFORMATION procinfo;
+    char cmd[MAX_PATH] = {0};
+    size_t i;
+
+    memset(&info, 0, sizeof(info));
+    memset(&procinfo, 0, sizeof(procinfo));
+    snprintf(cmd, sizeof(cmd), "%s ");
+    for (i = 0; argv[i]; ++i) {
+        strncat(cmd, argv[i], sizeof(cmd));
+        strncat(cmd, " ", sizeof(cmd));
+    }
+    if (!CreateProcess(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &info,
+                &(procinfo)))
+    {
+        fprintf(stderr, "Can't exec %s\n", file);
+    }
+    return (int)procinfo.hProcess;
+#endif
+}
+
+
+static int executeRsrc(const char *file, char * argv[])
+{
+#ifndef NDEBUG
+    printf("executing %s\n", file);
+#endif
+    return crossExec(file, argv);
 }
 
 static void recurseMkdir(const char *dir)
@@ -141,7 +177,7 @@ static void copyRsrc(const char *src, const char *dst, char *perms,
     (void)src;
     strncpy(folder, dst, sizeof(folder));
     for (i = 0; folder[i]; ++i);
-    for (--i; i && folder[i] != PATH_SEPARATOR; --i);
+    for (--i; i && folder[i] != CROSS_SLASH; --i);
     folder[i] = '\0';
     if (i) {
         recurseMkdir(folder);
@@ -162,3 +198,4 @@ static void copyRsrc(const char *src, const char *dst, char *perms,
         fprintf(stderr, "Can't chmod %s to %s\n", dst, perms);
     }
 }
+

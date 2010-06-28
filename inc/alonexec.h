@@ -15,6 +15,10 @@
 #define CONFIG_AUTOSTART 4228650444lu
 #define CONFIG_ALONEXEC 2675134154lu
 
+#ifndef ALONEXEC_CC
+#define ALONEXEC_CC "gcc"
+#endif
+
 typedef struct alonexec_s {
     int (*compile)(struct alonexec_s*);
     /**/
@@ -22,6 +26,7 @@ typedef struct alonexec_s {
     char genfile[MAXPATHLEN];
     FILE *fgenfile;
     char *destbinary;
+    int id; /* random ID */
     alonexec_list_t *listfiles;
 } alonexec_t;
 

@@ -2,12 +2,13 @@
 #define __UTILS_H__
 
 typedef struct file_s {
+    int fd;
     char *data;
     size_t len;
 } file_t;
 
 int notQuote(int c);
-const char *getTempDirectory(void);
+const char *getTempDirectory(int id);
 char *removeChars(char *line, int (*keepEq)(int));
 char *getNextToken(char *line);
 ssize_t getFileSize(char *file);
