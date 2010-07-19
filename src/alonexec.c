@@ -258,8 +258,10 @@ alonexec_t *alonexec_init(char *tpl, char **opts)
     alonexec_t *res;
 
     (void)opts;
+    srand(time(NULL));
     res = malloc(sizeof(alonexec_t));
     res->tpl = tpl;
+    res->id = rand();
     res->listfiles = NULL;
     snprintf(res->genfile, sizeof(res->genfile),
             "%s%c%s", getTempDirectory(res->id), CROSS_SLASH, "alonexecgen.c");
@@ -269,8 +271,6 @@ alonexec_t *alonexec_init(char *tpl, char **opts)
                 __FUNCTION__, res->genfile);
         exit(EXIT_FAILURE);
     }
-    srand(time(NULL));
-    res->id = rand();
     alonexec_parseTpl(res, tpl);
     alonexec_writeAllRsrc(res);
     alonexec_writeSpecTable(res); /*XXX:SpecTable must be written after Rsrc.*/
