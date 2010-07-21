@@ -106,7 +106,7 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
     filename = removeChars(spec->src, notQuote);
     content = getFileContents(filename);
     printf("Packing %s\n", filename);
-    fprintf(slf->fgenfile, "static char %s[] = {", stripname);
+    fprintf(slf->fgenfile, "static char %s[] = \"", stripname);
     if ((siz = getFileSize(filename)) < 0) {
         fprintf(stderr, "%s:%i Can't get %s file size.\n",
                 __FILE__, __LINE__, filename);
@@ -117,18 +117,18 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
     }
     spec->content = stripname ? strdup(stripname) : NULL;
     spec->contentlen = siz;
-    rsrc = malloc(sizeof(char) * spec->contentlen*6);
+    rsrc = malloc(sizeof(char) * spec->contentlen*4);
     for (i = 0; i < siz; ++i) {
         char oct[8] = {0};
         ssize_t wrote;
-        wrote = snprintf(oct, sizeof(oct), "0x%x%c",
-                content->data[i] & 0xff, (i+1 != siz ? ',' : ' '));
+        wrote = snprintf(oct, sizeof(oct), "\\x%x",
+                content->data[i] & 0xff);
         memcpy(rsrc + wrotelen, oct, wrote);
         wrotelen += wrote;
     }
     if ((fwrite(rsrc, sizeof(char), wrotelen, slf->fgenfile) != wrotelen))
         perror("fwrite");
-    fprintf(slf->fgenfile, "};\n");
+    fprintf(slf->fgenfile, "\";\n");
     free(stripname);
     free(filename);
     closeFile(content);
