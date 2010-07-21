@@ -76,6 +76,10 @@ static void alonexec_writeSpecTable(alonexec_t *slf)
     file_t *speccontent = getFileContents(ALONEXEC_SPECFILE);
     alonexec_list_t *it;
 
+    if (!speccontent) {
+        fprintf(stderr, "%s not found\n", ALONEXEC_SPECFILE);
+        exit(EXIT_FAILURE);
+    }
     fprintf(slf->fgenfile, "%s", speccontent->data);
     fprintf(slf->fgenfile, "alonexec_spec alonefiles[] = {\n");
     for (it = slf->listfiles; it; it = it->next) {
