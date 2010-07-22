@@ -45,8 +45,8 @@ const char *getTempDirectory(int id)
     static char *tmp = NULL;
     static char tmpf[2048] = {0};
 
-    if (tmp)
-        return tmp;
+    if (tmpf[0])
+        return tmpf;
     if (!(tmp = getenv("TMPDIR"))) {
 #ifndef _WIN32
         tmp = P_tmpdir;

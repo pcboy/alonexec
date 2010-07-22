@@ -15,10 +15,6 @@
 #define CONFIG_AUTOSTART 4228650444lu
 #define CONFIG_ALONEXEC 2675134154lu
 
-#ifndef ALONEXEC_CC
-#define ALONEXEC_CC "gcc"
-#endif
-
 typedef struct alonexec_s {
     int (*compile)(struct alonexec_s*);
     /**/

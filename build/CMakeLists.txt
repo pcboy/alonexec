@@ -10,7 +10,6 @@ SET(SRCS
     ../src/main.c
     )
 SET(CMAKE_C_FLAGS "-W -Wall -Wextra")
-ADD_DEFINITIONS(-DALONEXEC_CC="${CMAKE_C_COMPILER}")
 INCLUDE_DIRECTORIES(../inc/ sexpr_1.2/src/)
 LINK_DIRECTORIES(sexpr_1.2/src/)
 ADD_EXECUTABLE(alonexec ${SRCS})

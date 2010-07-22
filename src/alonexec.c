@@ -81,14 +81,21 @@ static void alonexec_writeSpecTable(alonexec_t *slf)
         exit(EXIT_FAILURE);
     }
     fprintf(slf->fgenfile, "%s", speccontent->data);
+    for (it = slf->listfiles; it; it = it->next) {
+        alonexec_spec *spec = it->data;
+        char *stripname = removeChars(spec->src, isalpha);
+        fprintf(slf->fgenfile, "extern char %s[%i];\n", stripname,
+                spec->contentlen);
+        free(stripname);
+    }
     fprintf(slf->fgenfile, "alonexec_spec alonefiles[] = {\n");
     for (it = slf->listfiles; it; it = it->next) {
         alonexec_spec *spec = it->data;
-        fprintf(slf->fgenfile, "{\"%s\",\"%s\",\"%s\",%i,%s,%i},\n",
-                spec->src, spec->dst, spec->perms, spec->exec,
+        fprintf(slf->fgenfile, "{\"%s\",\"%s\",\"%s\",\"%s\",%i,%s,%i},\n",
+                spec->idname, spec->src, spec->dst, spec->perms, spec->exec,
                 spec->content, spec->contentlen);
     }
-    fprintf(slf->fgenfile, "{NULL, NULL, NULL, 0, NULL, 0}");
+    fprintf(slf->fgenfile, "{NULL, NULL, NULL, NULL, 0, NULL, 0}");
     fprintf(slf->fgenfile, "\n};\n");
     closeFile(speccontent);
 }
@@ -101,12 +108,22 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
     int i;
     ssize_t siz;
     size_t wrotelen = 0;
-
+    FILE *fp;
+    char genfile[MAXPATHLEN];
+    
+    snprintf(genfile, sizeof(genfile),
+            "%s%c%s%s", getTempDirectory(slf->id), CROSS_SLASH,
+            spec->idname, ".c");
+    if (!(fp = fopen(genfile, "w"))) {
+        fprintf(stderr, "%s:%i Can't write %s.\n",
+                __FILE__, __LINE__, genfile);
+        return;
+    }
     stripname = removeChars(spec->src, isalpha);
     filename = removeChars(spec->src, notQuote);
     content = getFileContents(filename);
-    printf("Packing %s\n", filename);
-    fprintf(slf->fgenfile, "static char %s[] = \"", stripname);
+    fprintf(stderr, "Packing %s\n", filename);
+    fprintf(fp, "char %s[] = \"", stripname);
     if ((siz = getFileSize(filename)) < 0) {
         fprintf(stderr, "%s:%i Can't get %s file size.\n",
                 __FILE__, __LINE__, filename);
@@ -126,11 +143,12 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
         memcpy(rsrc + wrotelen, oct, wrote);
         wrotelen += wrote;
     }
-    if ((fwrite(rsrc, sizeof(char), wrotelen, slf->fgenfile) != wrotelen))
+    if ((fwrite(rsrc, sizeof(char), wrotelen, fp) != wrotelen))
         perror("fwrite");
-    fprintf(slf->fgenfile, "\";\n");
+    fprintf(fp, "\";\n");
     free(stripname);
     free(filename);
+    fclose(fp);
     closeFile(content);
     free(rsrc);
 }
@@ -163,6 +181,7 @@ static void alonexec_parseTpl(alonexec_t* slf, char *tpl)
     while ((sx = read_one_sexp(iow))) {
         struct elt *n = sx->list;
         alonexec_spec *spec = malloc(sizeof(alonexec_spec));
+        spec->idname = n->val ? strdup(n->val) : NULL;
         for (n = sx->list; n; n = n->next) {
 #if 0
             if (hash((unsigned char*)lowercase(n->val)) == CONFIG_ALONEXEC) {
@@ -204,58 +223,22 @@ static void alonexec_parseTpl(alonexec_t* slf, char *tpl)
     close(fd);
 }
 
-#if defined(_WIN32)
 static int alonexec_compile(alonexec_t *slf)
 {
-    STARTUPINFO info;
-    PROCESS_INFORMATION processInfo;
-    char cmd[2048] = {0};
+    alonexec_list_t *it;
 
-    memset(&info, 0, sizeof(info));
-    memset(&processInfo, 0, sizeof(processInfo));
-    snprintf(cmd, sizeof(cmd), "\"%s\" \"%s\" -o \"%s\"", ALONEXEC_CC,
-            slf->genfile, "final.exe");
-    if (!CreateProcessA(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL,
-                &info, &processInfo))
-    {
-        fprintf(stderr, "Can't CreateProcess(): %lu %s\n",
-                GetLastError(), cmd);
-        return -1;
+    printf("%s\n", slf->genfile);
+    for (it = slf->listfiles; it; it = it->next) {
+        char genfile[MAXPATHLEN];
+        alonexec_spec *spec = it->data;
+
+        snprintf(genfile, sizeof(genfile),
+                "%s%c%s%s", getTempDirectory(slf->id), CROSS_SLASH,
+                spec->idname, ".c");
+        printf("%s\n", genfile);
     }
-    WaitForSingleObject(processInfo.hProcess, INFINITE);
-    CloseHandle(processInfo.hProcess);
-    CloseHandle(processInfo.hThread);
     return 0;
 }
-#else
-static int alonexec_compile(alonexec_t *slf)
-{
-    int status = 0;
-    pid_t pid = fork();
-    const char *debug = "-DDEBUG";
-
-#if defined(NDEBUG)
-    debug = "-DNDEBUG";
-#endif
-
-    switch (pid) {
-        case 0:
-            printf("Compiling final executable...\n");
-            execlp(ALONEXEC_CC, ALONEXEC_CC, "-W", "-Wall", debug, slf->genfile,
-                    "-o", "finalexe", NULL);
-            perror("execlp");
-            fprintf(stderr, "Can't execute %s on %s\n", ALONEXEC_CC,
-                    slf->genfile);
-            return -1;
-        case -1:
-            perror("fork");
-            return -1;
-        default:
-            wait(&status);
-            return 0;
-    }
-}
-#endif
 
 alonexec_t *alonexec_init(char *tpl, char **opts)
 {

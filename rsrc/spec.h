@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 typedef struct alonexec_spec {
+    char *idname;
     char *src;
     char *dst;
     char *perms;

@@ -21,6 +21,7 @@
 
 static void alonexec_specFree(alonexec_spec *spec)
 {
+    free(spec->idname);
     free(spec->src);
     free(spec->dst);
     free(spec->perms);
