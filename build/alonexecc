@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+IFS=$'\n'
 function usage {
     echo "$0 file.alonexec destbinary"
     exit
