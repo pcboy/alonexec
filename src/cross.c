@@ -28,7 +28,13 @@
 
 char *cross_getAppPath(void)
 {
-#ifndef _WIN32
+#if defined(_WIN32)
+    char buf[MAXPATHLEN];
+
+    if (!GetModuleFileName(NULL, buf, sizeof(buf)))
+        return NULL;
+    return strdup(buf);
+#else
     char procf[MAXPATHLEN];
 
     snprintf(procf, sizeof(procf), "/proc/%i/exe", getpid());
@@ -38,7 +44,6 @@ char *cross_getAppPath(void)
 
 char *cross_getAppDir(void)
 {
-#ifndef _WIN32
     int i;
     char *app = cross_getAppPath();
 
@@ -47,7 +52,6 @@ char *cross_getAppDir(void)
     for (i = strlen(app)-1; i && app[i] != CROSS_SLASH; --i);
     app[i] = '\0';
     return app;
-#endif
 }
 
 void *cross_mmap(void *addr, size_t length, int prot, int flags,
