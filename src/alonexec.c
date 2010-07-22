@@ -87,7 +87,6 @@ static void alonexec_writeSpecTable(alonexec_t *slf)
 
     snprintf(specfile, sizeof(specfile), "%s/%s", slf->dirname,
             ALONEXEC_SPECFILE);
-    printf("searching %s\n", specfile);
     if (!(speccontent = getFileContents(specfile))) {
         fprintf(stderr, "%s not found\n", ALONEXEC_SPECFILE);
         exit(EXIT_FAILURE);
