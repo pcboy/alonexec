@@ -15,6 +15,8 @@
 #define CROSS_SLASH '/'
 #endif /* _WIN32 */
 
+char *cross_getAppDir(void);
+char *cross_getAppPath(void);
 void *cross_mmap(void *addr, size_t length, int prot, int flags,
                 int fd, off_t offset);
 int cross_munmap(void *addr, size_t length);

@@ -105,6 +105,7 @@ file_t *getFileContents(char *file)
         return NULL;
     }
     res = malloc(sizeof(file_t));
+    res->filepath = strdup(file);
     res->len = siz;
     if ((res->fd = open(file, O_RDONLY, 0)) < 0) {
         perror("open");
@@ -129,8 +130,11 @@ int closeFile(file_t *f)
 {
     int res;
 
+    if (!f)
+        return 0;
     res = cross_munmap(f->data, f->len);
     close(f->fd);
+    free(f->filepath);
     free(f), f = NULL;
     return res;
 }

@@ -17,9 +17,38 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/param.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 
 #include "cross.h"
+
+
+char *cross_getAppPath(void)
+{
+#ifndef _WIN32
+    char procf[MAXPATHLEN];
+
+    snprintf(procf, sizeof(procf), "/proc/%i/exe", getpid());
+    return realpath(procf, NULL);
+#endif
+}
+
+char *cross_getAppDir(void)
+{
+#ifndef _WIN32
+    int i;
+    char *app = cross_getAppPath();
+
+    if (!app)
+        return NULL;
+    for (i = strlen(app)-1; i && app[i] != CROSS_SLASH; --i);
+    app[i] = '\0';
+    return app;
+#endif
+}
 
 void *cross_mmap(void *addr, size_t length, int prot, int flags,
         int fd, off_t offset)

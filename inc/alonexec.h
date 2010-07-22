@@ -6,8 +6,8 @@
 
 #include "list.h"
 
-#define ALONEXEC_SPECFILE "../rsrc/spec.h"
-#define ALONEXEC_FCTFILE "../rsrc/prefunctions.c"
+#define ALONEXEC_SPECFILE "../share/alonexec/spec.h"
+#define ALONEXEC_FCTFILE "../share/alonexec/prefunctions.c"
 
 #define CONFIG_SOURCEPATH 3090735331lu
 #define CONFIG_DESTPATH 953670466lu
@@ -18,6 +18,8 @@
 typedef struct alonexec_s {
     int (*compile)(struct alonexec_s*);
     /**/
+    char **argv;
+    char *dirname;
     char *tpl;
     char genfile[MAXPATHLEN];
     FILE *fgenfile;

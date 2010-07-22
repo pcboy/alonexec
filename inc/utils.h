@@ -4,6 +4,7 @@
 typedef struct file_s {
     int fd;
     char *data;
+    char *filepath;
     size_t len;
 } file_t;
 

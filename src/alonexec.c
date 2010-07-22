@@ -47,16 +47,16 @@ static void alonexec_writeMain(alonexec_t *slf)
             (void)argc;\n\
             const char *tmp = getTempDirectory(%i);\n\
             if (chdir(tmp) < 0){\n\
-                perror(\"chdir\");\n\
+            perror(\"chdir\");\n\
             }\n\
             for (i = 0; alonefiles[i].src; ++i) {\n\
-                copyRsrc(alonefiles[i].src, alonefiles[i].dst,\n\
-                    alonefiles[i].perms, alonefiles[i].content,\n\
-                    alonefiles[i].contentlen);\n\
+            copyRsrc(alonefiles[i].src, alonefiles[i].dst,\n\
+                alonefiles[i].perms, alonefiles[i].content,\n\
+                alonefiles[i].contentlen);\n\
             }\n\
             for (i = 0; alonefiles[i].src; ++i) {\n\
-                if (alonefiles[i].exec)\n\
-                    executeRsrc(alonefiles[i].dst, argv);\n\
+            if (alonefiles[i].exec)\n\
+            executeRsrc(alonefiles[i].dst, argv);\n\
             }\
             return 0;\n\
             }\n", slf->id);
@@ -64,8 +64,15 @@ static void alonexec_writeMain(alonexec_t *slf)
 
 static void alonexec_writeFunctions(alonexec_t *slf)
 {
-    file_t *fcts = getFileContents(ALONEXEC_FCTFILE);
-    
+    char fctfile[MAXPATHLEN] = {0};
+    file_t *fcts;
+   
+    snprintf(fctfile, sizeof(fctfile), "%s/%s", slf->dirname,
+            ALONEXEC_FCTFILE);
+    if (!(fcts = getFileContents(fctfile))) {
+        fprintf(stderr, "%s not found\n", ALONEXEC_FCTFILE);
+        exit(EXIT_FAILURE);
+    }
     fprintf(slf->fgenfile, "%s", fcts->data);
     closeFile(fcts);
     alonexec_writeMain(slf);
@@ -73,10 +80,15 @@ static void alonexec_writeFunctions(alonexec_t *slf)
 
 static void alonexec_writeSpecTable(alonexec_t *slf)
 {
-    file_t *speccontent = getFileContents(ALONEXEC_SPECFILE);
+    char specfile[MAXPATHLEN] = {0};
+    file_t *speccontent; 
     alonexec_list_t *it;
 
-    if (!speccontent) {
+
+    snprintf(specfile, sizeof(specfile), "%s/%s", slf->dirname,
+            ALONEXEC_SPECFILE);
+    printf("searching %s\n", specfile);
+    if (!(speccontent = getFileContents(specfile))) {
         fprintf(stderr, "%s not found\n", ALONEXEC_SPECFILE);
         exit(EXIT_FAILURE);
     }
@@ -84,6 +96,7 @@ static void alonexec_writeSpecTable(alonexec_t *slf)
     for (it = slf->listfiles; it; it = it->next) {
         alonexec_spec *spec = it->data;
         char *stripname = removeChars(spec->src, isalpha);
+
         fprintf(slf->fgenfile, "extern char %s[%i];\n", stripname,
                 spec->contentlen);
         free(stripname);
@@ -91,6 +104,7 @@ static void alonexec_writeSpecTable(alonexec_t *slf)
     fprintf(slf->fgenfile, "alonexec_spec alonefiles[] = {\n");
     for (it = slf->listfiles; it; it = it->next) {
         alonexec_spec *spec = it->data;
+
         fprintf(slf->fgenfile, "{\"%s\",\"%s\",\"%s\",\"%s\",%i,%s,%i},\n",
                 spec->idname, spec->src, spec->dst, spec->perms, spec->exec,
                 spec->content, spec->contentlen);
@@ -100,7 +114,7 @@ static void alonexec_writeSpecTable(alonexec_t *slf)
     closeFile(speccontent);
 }
 
-static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
+static int alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
 {
     char *stripname, *filename;
     char *rsrc;
@@ -110,14 +124,14 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
     size_t wrotelen = 0;
     FILE *fp;
     char genfile[MAXPATHLEN];
-    
+
     snprintf(genfile, sizeof(genfile),
             "%s%c%s%s", getTempDirectory(slf->id), CROSS_SLASH,
             spec->idname, ".c");
     if (!(fp = fopen(genfile, "w"))) {
         fprintf(stderr, "%s:%i Can't write %s.\n",
                 __FILE__, __LINE__, genfile);
-        return;
+        return -1;
     }
     stripname = removeChars(spec->src, isalpha);
     filename = removeChars(spec->src, notQuote);
@@ -130,7 +144,7 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
         free(stripname);
         free(filename);
         closeFile(content);
-        return;
+        return -1;
     }
     spec->content = stripname ? strdup(stripname) : NULL;
     spec->contentlen = siz;
@@ -143,23 +157,31 @@ static void alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
         memcpy(rsrc + wrotelen, oct, wrote);
         wrotelen += wrote;
     }
-    if ((fwrite(rsrc, sizeof(char), wrotelen, fp) != wrotelen))
-        perror("fwrite");
-    fprintf(fp, "\";\n");
     free(stripname);
     free(filename);
-    fclose(fp);
     closeFile(content);
+    if ((fwrite(rsrc, sizeof(char), wrotelen, fp) != wrotelen)) {
+        perror("fwrite");
+        free(rsrc);
+        fclose(fp);
+        free(rsrc);
+        return -1;
+    }
     free(rsrc);
+    fprintf(fp, "\";\n");
+    fclose(fp);
+    return 0;
 }
 
-static void alonexec_writeAllRsrc(alonexec_t *slf)
+static int alonexec_writeAllRsrc(alonexec_t *slf)
 {
     alonexec_list_t *it;
 
     for (it = slf->listfiles; it; it = it->next) {
-        alonexec_writeRsrc(slf, it->data);
+        if (alonexec_writeRsrc(slf, it->data) < 0)
+            return -1;
     }
+    return 0;
 }
 
 static void alonexec_parseTpl(alonexec_t* slf, char *tpl)
@@ -244,12 +266,13 @@ alonexec_t *alonexec_init(char *tpl, char **opts)
 {
     alonexec_t *res;
 
-    (void)opts;
     srand(time(NULL));
     res = malloc(sizeof(alonexec_t));
+    res->argv = opts;
     res->tpl = tpl;
     res->id = rand();
     res->listfiles = NULL;
+    res->dirname = cross_getAppDir();
     snprintf(res->genfile, sizeof(res->genfile),
             "%s%c%s", getTempDirectory(res->id), CROSS_SLASH, "alonexecgen.c");
     if (!(res->fgenfile = fopen(res->genfile, "w+"))) {
@@ -259,7 +282,10 @@ alonexec_t *alonexec_init(char *tpl, char **opts)
         exit(EXIT_FAILURE);
     }
     alonexec_parseTpl(res, tpl);
-    alonexec_writeAllRsrc(res);
+    if (alonexec_writeAllRsrc(res) < 0) {
+        fprintf(stderr, "Can't write all resources.\n");
+        exit(EXIT_FAILURE);
+    }
     alonexec_writeSpecTable(res); /*XXX:SpecTable must be written after Rsrc.*/
     alonexec_writeFunctions(res);
     res->compile = alonexec_compile;
@@ -278,6 +304,7 @@ XXX: Remove temporary directory.
     }
 #endif
     sexp_cleanup();
+    free(del->dirname);
     alonexec_listFree(del->listfiles);
     free(del), del = NULL;
 }
