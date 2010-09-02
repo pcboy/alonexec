@@ -8,5 +8,6 @@ if [[ ! $1 || ! $2 ]];then
     usage
 fi
 WORKPATH=""
-for i in `alonexec "$1" 2>/dev/null`;do gcc -c "$i" -o "$i.o"; echo $i; WORKPATH=`dirname "$i"`; done
-cc `ls -1 "$WORKPATH"/*.o` -o "$2"
+for i in `alonexec "$1" 2>/dev/null`;do gcc -DNDEBUG -O2 -c "$i" -o "$i.o";\
+    echo $i; WORKPATH=`dirname "$i"`; done
+cc -DNDEBUG -O2 `ls -1 "$WORKPATH"/*.o` -o "$2"
