@@ -46,7 +46,7 @@ function compile_TCC() {
 }
 
 compile_sexp
-compile_TCC
+#compile_TCC
 
 cd $LASTDIR
 
