@@ -134,7 +134,8 @@ static int alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
     }
     stripname = removeChars(spec->src, isalpha);
     filename = removeChars(spec->src, notQuote);
-    content = getFileContents(filename);
+    if (!(content = getFileContents(filename)))
+        exit(EXIT_FAILURE);
     fprintf(stderr, "Packing %s\n", filename);
     fprintf(fp, "char %s[] = \"", stripname);
     if ((siz = getFileSize(filename)) < 0) {
@@ -202,7 +203,7 @@ static void alonexec_parseTpl(alonexec_t* slf, char *tpl)
     while ((sx = read_one_sexp(iow))) {
         struct elt *n = sx->list;
         alonexec_spec *spec = malloc(sizeof(alonexec_spec));
-        spec->idname = n->val ? strdup(n->val) : NULL;
+        spec->idname = (n && n->val) ? strdup(n->val) : NULL;
         for (n = sx->list; n; n = n->next) {
 #if 0
             if (hash((unsigned char*)lowercase(n->val)) == CONFIG_ALONEXEC) {

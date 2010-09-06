@@ -90,7 +90,7 @@ ssize_t getFileSize(char *file)
 
     if (lstat(file, &s) < 0) {
         perror("lstat");
-        fprintf(stderr, "Can't lstat %s\n", file);
+        fprintf(stderr, "Can't lstat file: %s\n", file);
         return -1;
     }
     return s.st_size;
