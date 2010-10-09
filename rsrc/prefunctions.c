@@ -24,6 +24,7 @@
 #include <windows.h>
 #include <malloc.h>
 #define mkdir(x,y) mkdir(x)
+#define F_OK S_OK
 
 #define CROSS_SLASH '\\'
 #else
@@ -182,6 +183,8 @@ static void copyRsrc(const char *src, const char *dst, char *perms,
     if (i) {
         recurseMkdir(folder);
     }
+    if (!access(dst, F_OK)) /* Don't ovrwrite if file exists. */
+        return;
     fp = fopen(dst, "w");
     if (!fp) {
         perror("fopen");
