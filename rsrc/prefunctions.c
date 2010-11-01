@@ -107,6 +107,8 @@ int crossExec(const char *file, char *const argv[])
     pid = fork();
     switch (pid) {
         case 0:
+            if (setsid() < 0)
+                perror("setsid");
             execve(file, argv, environ);
             fprintf(stderr, "Can't exec %s\n", file);
             perror("execve");
