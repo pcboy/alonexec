@@ -2,26 +2,22 @@
  (sourcepath "alonexec")
  (destpath "alonexec")
  (mode "rwxr-xr-x")
- (autostart true)
-)
+ (autostart true))
 
 (linux.alonexec
  (sourcepath "linux.alonexec")
  (destpath "linux.alonexec")
  (mode "rwxr-xr-x")
- (autostart false)
- )
+ (autostart false))
 
 (spec.h
  (sourcepath "../rsrc/spec.h")
  (destpath "../rsrc/spec.h")
  (mode "rwxr-xr-x")
- (autostart false)
- )
+ (autostart false))
 
 (tcc
  (sourcepath "tcc")
  (destpath "tcc")
  (mode "rwxr-xr-x")
- (autostart false)
- )
+ (autostart false))
