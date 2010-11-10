@@ -63,7 +63,7 @@ const char *getTempDirectory(int id)
 
 int notQuote(int c)
 {
-    return c != '"';
+    return c != '"' && c != '\'';
 }
 
 char *removeChars(char *line, int (*keepEq)(int))
@@ -73,10 +73,10 @@ char *removeChars(char *line, int (*keepEq)(int))
 
     if (!line)
         return NULL;
-    res = alloca(strlen(line)+1);
+    res = alloca(strlen(line)+2);
+    res[0] = 'a'; /* XXX: Dirty hack to prevent numbers in first char var.*/
     for (i = 0; line[i]; ++i) {
-        if (keepEq(line[i])) { /* FIXME: Will causes problem in the future.
-                                  What to do for 8c,9c binary names for instance ?*/
+        if (keepEq(line[i])) {
             res[h++] = line[i];
         }
     }

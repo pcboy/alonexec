@@ -94,7 +94,7 @@ static void alonexec_writeSpecTable(alonexec_t *slf)
     fprintf(slf->fgenfile, "%s", speccontent->data);
     for (it = slf->listfiles; it; it = it->next) {
         alonexec_spec *spec = it->data;
-        char *stripname = removeChars(spec->src, isalpha);
+        char *stripname = removeChars(spec->src, isalnum);
 
         fprintf(slf->fgenfile, "extern char %s[%i];\n", stripname,
                 spec->contentlen);
@@ -132,7 +132,7 @@ static int alonexec_writeRsrc(alonexec_t *slf, alonexec_spec *spec)
                 __FILE__, __LINE__, genfile);
         return -1;
     }
-    stripname = removeChars(spec->src, isalpha);
+    stripname = removeChars(spec->src, isalnum);
     filename = removeChars(spec->src, notQuote);
     if (!(content = getFileContents(filename)))
         exit(EXIT_FAILURE);
